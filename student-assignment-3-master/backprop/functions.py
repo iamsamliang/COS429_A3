@@ -31,7 +31,8 @@ def f1(x1, w1, x2, w2, b, y):
     # TODO: Implement the forward pass for the computational graph f1 shown   #
     # in the homework description. Store the loss in the variable L.          #
     ###########################################################################
-
+    d = w1*x1 + w2*x2 + b - y
+    L = d**2
     ###########################################################################
     #                              END OF YOUR CODE                           #
     ###########################################################################
@@ -44,7 +45,14 @@ def f1(x1, w1, x2, w2, b, y):
     # in the homework description. Store the gradients for each input         #
     # variable in the corresponding grad variagbles defined above.            #
     ###########################################################################
-
+    grad_b = 2*d
+    grad_y = -grad_b
+    
+    grad_x1 = w1*grad_b
+    grad_w1 = x1*grad_b
+    grad_x2 = w2*grad_b
+    grad_w2 = x2*grad_b
+    
 
     ###########################################################################
     #                              END OF YOUR CODE                           #
@@ -78,7 +86,7 @@ def f2(x):
     # TODO: Implement the forward pass for the computational graph f2 shown   #
     # in the homework description. Store the output in the variable y.        #
     ###########################################################################
-
+    y = math.tanh(x) 
 
     ###########################################################################
     #                              END OF YOUR CODE                           #
@@ -91,7 +99,9 @@ def f2(x):
     # in the homework description. Store the gradients for each input         #
     # variable in the corresponding grad variagbles defined above.            #
     ###########################################################################
-
+    
+    # we did the backprop and this is the simplified version
+    grad_x = 1 - y**2
 
     ###########################################################################
     #                              END OF YOUR CODE                           #
@@ -127,7 +137,12 @@ def f3(s1, s2, y):
     # TODO: Implement the forward pass for the computational graph f3 shown   #
     # in the homework description. Store the loss in the variable L.          #
     ###########################################################################
+    e1 = math.exp(s1)
+    e2 = math.exp(s2)
+    d = e1 + e2
     
+    p_plus = (e1 if y == 1 else e2) / d # p_plus = e_plus / d
+    L = - math.log(p_plus)
 
     ###########################################################################
     #                              END OF YOUR CODE                           #
@@ -143,6 +158,14 @@ def f3(s1, s2, y):
     #                                                                         #
     # HINT: You may need an if statement to backprop through the choose node  #
     ###########################################################################
+
+    grad_p_plus = -1 / p_plus
+    shared_pplus_s_grad = e1 * e2 / (d**2)
+    
+    pplus_s1_grad = shared_pplus_s_grad if y == 1 else -shared_pplus_s_grad
+    
+    grad_s1 = grad_p_plus * pplus_s1_grad
+    grad_s2 = - grad_s1
 
     ###########################################################################
     #                              END OF YOUR CODE                           #
