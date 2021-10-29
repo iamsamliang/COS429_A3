@@ -141,8 +141,9 @@ def f3(s1, s2, y):
     e2 = math.exp(s2)
     d = e1 + e2
     
-    p_plus = (e1 if y == 1 else e2) / d # p_plus = e_plus / d
-    L = - math.log(p_plus)
+    p1 = e1 / d
+    p2 = e2 / d
+    L = - math.log(p1 if y==1 else p2)
 
     ###########################################################################
     #                              END OF YOUR CODE                           #
@@ -158,13 +159,8 @@ def f3(s1, s2, y):
     #                                                                         #
     # HINT: You may need an if statement to backprop through the choose node  #
     ###########################################################################
-
-    grad_p_plus = -1 / p_plus
-    shared_pplus_s_grad = e1 * e2 / (d**2)
-    
-    pplus_s1_grad = shared_pplus_s_grad if y == 1 else -shared_pplus_s_grad
-    
-    grad_s1 = grad_p_plus * pplus_s1_grad
+      
+    grad_s1 = -p2 if y==1 else p1
     grad_s2 = - grad_s1
 
     ###########################################################################
