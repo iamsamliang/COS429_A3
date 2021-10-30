@@ -34,7 +34,16 @@ def affine_transform_loss(P, P_prime, S, t):
     # fully vectorized, and should not contain any loops (including map,      #
     # filter, or comprehension expressions).                                  #
     ###########################################################################
-
+    
+    prediction = P @ S.T + t.T
+    
+    # the (i, 0)-th element is of this matrix of shape (N, 2) is the estimation
+    # error for the x-coordinate of point i.
+    # similarly for (i, 1)-th element, y-coordinate estimation error.
+    est_err_matrix = prediction - P_prime
+    loss_vector = np.sum(np.square(est_err_matrix), axis=1)
+    
+    loss = np.mean(loss_vector, axis=0)
 
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -48,7 +57,9 @@ def affine_transform_loss(P, P_prime, S, t):
     # in the grad variables defined above. As above, your implementation      #
     # should be fully vectorized and should not contain any loops.            #
     ###########################################################################
-
+    N = P.shape[0]
+    grad_t = 2 * np.mean(est_err_matrix, axis=0).T
+    grad_S = 2 * est_err_matrix.T @ P / N
 
     ###########################################################################
     #                             END OF YOUR CODE                            #
