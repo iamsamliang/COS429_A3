@@ -41,7 +41,7 @@ def affine_transform_loss(P, P_prime, S, t):
     # error for the x-coordinate of point i.
     # similarly for (i, 1)-th element, y-coordinate estimation error.
     est_err_matrix = prediction - P_prime
-    loss_vector = np.sum(np.square(est_err_matrix), axis=1)
+    loss_vector = np.sum(np.square(est_err_matrix), axis=1) # summing horizontally
     
     loss = np.mean(loss_vector, axis=0)
 
@@ -98,7 +98,14 @@ def fit_affine_transform(P, P_prime, logger, learning_rate, steps):
     # storing the parameters of the transform in the variables above.         #
     # Don't forget to call the logger at each iteration!                      #
     ###########################################################################
-    
+    S = np.eye(2, 2)
+    t = np.zeros(2)
+    for i in range(steps):
+        loss, prediction, grad_S, grad_t = affine_transform_loss(P, P_prime, S, t)
+        logger.log(i, loss, prediction)
+        S = S - learning_rate * grad_S
+        t = t - learning_rate * grad_t
+        
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
