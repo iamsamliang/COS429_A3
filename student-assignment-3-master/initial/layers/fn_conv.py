@@ -35,8 +35,11 @@ def fn_conv(input, params, hyper_params, backprop, dv_output=None):
     
     # TODO: FORWARD CODE
     #       Update output with values
-
-
+    for batch_num in range(batch_size):
+        for filter_i in range(num_filters):
+            curr_filter = params['W'][:, :, :, filter_i]
+            output[:, :, filter_i, batch_num] = scipy.signal.convolve(data, curr_filter, mode="valid")
+    
 
 
     if backprop:
@@ -47,7 +50,7 @@ def fn_conv(input, params, hyper_params, backprop, dv_output=None):
         
         # TODO: BACKPROP CODE
         #       Update dv_input and grad with values
-
+        
 
 
     return output, dv_input, grad
