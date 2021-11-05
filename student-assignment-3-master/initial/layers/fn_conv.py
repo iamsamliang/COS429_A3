@@ -38,7 +38,9 @@ def fn_conv(input, params, hyper_params, backprop, dv_output=None):
     for batch_num in range(batch_size):
         for filter_i in range(num_filters):
             curr_filter = params['W'][:, :, :, filter_i]
-            output[:, :, filter_i, batch_num] = scipy.signal.convolve(data, curr_filter, mode="valid")
+            curr_filter = np.flip(curr_filter, axis=2)
+            output[:, :, filter_i, batch_num] = scipy.signal.convolve(input[:, :, :, batch_num], curr_filter, mode="valid").reshape(out_height, out_width) + params['b'][filter_i]
+            curr_filter = np.flip(curr_filter, axis=2)
     
 
 
@@ -50,7 +52,11 @@ def fn_conv(input, params, hyper_params, backprop, dv_output=None):
         
         # TODO: BACKPROP CODE
         #       Update dv_input and grad with values
-        
+        input = np.flip(input)
+        dv_outpout = np.flip(dv_output)
+        for batch_i in range(batch_size):
+            # how to index grad['W']
+            grad['W'][:, :, :, ] = scipy.signal.convolve(input[:, :, :, batch_i], dv_output[:, :, :, batch_i], mode="valid")
 
 
     return output, dv_input, grad
