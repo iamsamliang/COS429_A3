@@ -21,7 +21,7 @@ def fn_conv(input, params, hyper_params, backprop, dv_output=None):
     """
 
     in_height, in_width, num_channels, batch_size = input.shape
-    _, _, filter_depth, num_filters = params['W'].shape
+    filter_height, filter_width, filter_depth, num_filters = params['W'].shape # CHANGED!
     out_height = in_height - params['W'].shape[0] + 1
     out_width = in_width - params['W'].shape[1] + 1
 
@@ -35,14 +35,14 @@ def fn_conv(input, params, hyper_params, backprop, dv_output=None):
     
     # TODO: FORWARD CODE
     #       Update output with values
-    for batch_num in range(batch_size):
-        for filter_i in range(num_filters):
-            curr_filter = params['W'][:, :, :, filter_i]
-            curr_filter = np.flip(curr_filter, axis=2)
-            output[:, :, filter_i, batch_num] = scipy.signal.convolve(input[:, :, :, batch_num], curr_filter, mode="valid").reshape(out_height, out_width) + params['b'][filter_i]
-            curr_filter = np.flip(curr_filter, axis=2)
     
-
+    # depth-flipped filters are used for implementing the 2d convolution + depth-sum as 3d convolution.
+    depth_flipped_filters = np.flip(params['W'], axis=2)
+    
+    # apply 3d convolution to every im in the batch to with every filter.
+    for im_num in range(batch_size):
+        for filter_k in range(num_filters):
+            output[:, :, filter_k, im_num] = scipy.signal.convolve(input[:, :, :, im_num], depth_flipped_filters[:, :, :, filter_k], mode="valid").reshape(out_height, out_width) + params['b'][filter_k]
 
     if backprop:
         assert dv_output is not None
@@ -52,11 +52,34 @@ def fn_conv(input, params, hyper_params, backprop, dv_output=None):
         
         # TODO: BACKPROP CODE
         #       Update dv_input and grad with values
-        input = np.flip(input)
-        dv_outpout = np.flip(dv_output)
-        for batch_i in range(batch_size):
-            # how to index grad['W']
-            grad['W'][:, :, :, ] = scipy.signal.convolve(input[:, :, :, batch_i], dv_output[:, :, :, batch_i], mode="valid")
-
-
+        
+        # flipped inputs and filters are needed
+        backprop_flipped_filters = np.flip(depth_flipped_filters, axis=(0,1,2)) # don't flip the [num_filters] dimension
+        backprop_flipped_inputs = np.flip(input, axis=(0,1,2)) # don't flip the [batch_size] dimension
+                                          
+        
+        # grad['b']: for a given depth-level k of the 4-dimensional output, every entry (per width per height)
+        # contributes 1 to the derivative due to the element-wise nature of summation. 
+        # then, the average over the batch is found.
+        for filter_k in range(num_filters):
+            grad['b'][filter_k] += np.sum(dv_output[:, :, filter_k, :])
+        grad['b'] = grad['b'] / batch_size
+        
+        # grad['W']: the gradient of the loss w.r.t. the weights corresponds to taking a convolution between
+        # the flipped image and the gradients of the loss w.r.t. the outputs
+        for filter_k in range(num_filters):
+            for im_num in range(batch_size):
+                grad['W'][:, :, :, filter_k] += scipy.signal.convolve(backprop_flipped_inputs[:, :, :, im_num], dv_output[:, :, filter_k, im_num].reshape(out_height, out_width, 1), mode='valid')
+                
+        # need to take the average over every batch, also need to flip again before returning
+        grad['W'] = grad['W'] / batch_size
+        grad['W'] = np.flip(grad['W'], axis=2)
+        
+        # dv_input: the gradient of the loss w.r.t. the input corresponds to taking a convolution between
+        # the flipped filters and the gradients of the loss w.r.t. the outputs
+        for filter_k in range(num_filters):
+            for im_num in range(batch_size):
+                for channel in range(num_channels):
+                    dv_input[:,:,channel,im_num] += scipy.signal.convolve(backprop_flipped_filters[:, :, channel, filter_k], dv_output[:, :, filter_k, im_num], mode='full')
+        
     return output, dv_input, grad
