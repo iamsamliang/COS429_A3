@@ -21,7 +21,7 @@ def fn_conv(input, params, hyper_params, backprop, dv_output=None):
     """
 
     in_height, in_width, num_channels, batch_size = input.shape
-    filter_height, filter_width, filter_depth, num_filters = params['W'].shape # CHANGED!
+    _, _, filter_depth, num_filters = params['W'].shape
     out_height = in_height - params['W'].shape[0] + 1
     out_width = in_width - params['W'].shape[1] + 1
 
