@@ -10,7 +10,7 @@ from fn_linear_ import fn_linear
 
 ######################################################
 # Set use_pcode to True to use the provided pyc code for layer functions
-use_pcode = False
+use_pcode = True
 
 # You can modify the import of this section to indicate 
 # whether to use the provided pyc or your own code for fn_conv function.

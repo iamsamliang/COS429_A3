@@ -6,7 +6,7 @@ from loss_crossentropy import loss_crossentropy
 ######################################################
 # Set use_pcode to True to use the provided pyc code
 # for inference, calc_gradient, loss_crossentropy and update_weights
-use_pcode = False
+use_pcode = True
 
 # You can modify the imports of this section to indicate
 # whether to use the provided pyc or your own code for each of the four functions.
@@ -64,10 +64,21 @@ def train(model, input, label, params, numIters):
         # TODO: One training iteration
         # Steps:
         #   (1) Select a subset of the input to use as a batch
+            # generate batch_size number of random unique(replace=False) indices from the range of 0 - num_inputs (inclusive)
+        ran_indices = np.random.choice(num_inputs, size=batch_size, replace=False)
+        training_batch = input[..., ran_indices]
+        training_labels = label[ran_indices]
         #   (2) Run inference on the batch
+        output, activations = inference(model, training_batch)
         #   (3) Calculate loss and determine accuracy
+            # dv_input = derivative of the loss with respect to the input
+        loss, dv_input = loss_crossentropy(output, training_labels, {}, True)
+        # np.count_nonzero(output==training_labels) counts how many predicted_labels match the real labels
+        accuracy = np.count_nonzero(output==training_labels) / batch_size
         #   (4) Calculate gradients
+        gradients = calc_gradient(model, training_batch, activations, dv_input)
         #   (5) Update the weights of the model
+        model = update_weights(model, gradients, params)
         # Optionally,
         #   (1) Monitor the progress of training
         #   (2) Save your learnt model, using ``np.savez(save_file, **model)``
