@@ -19,8 +19,10 @@ def update_weights(model, grads, hyper_params):
 
     # TODO: Update the weights of each layer in your model based on the calculated gradients
     for layer_index, layer in enumerate(model["layers"]):
-        if layer["type"] is "linear" or "conv":
-            layer["params"]["W"] -= a*(grads[layer_index]["W"] + 2*lmd*layer["params"]["W"])
-            layer["params"]["b"] -= a*grads[layer_index]["b"]
-        
+        for layer_param_name in layer["params"].keys():
+            if layer_param_name == "W":
+                layer["params"]["W"] -= a*grads[layer_index]["W"] + 2*lmd*layer["params"]["W"]
+            else:
+                layer["params"][layer_param_name] -= a*grads[layer_index][layer_param_name]
+       
     return updated_model
