@@ -66,9 +66,9 @@ def main():
 
         model = init_model(layers, [X_train.shape[0], X_train.shape[1], X_train.shape[2]], 10, True)
     
-    numIters = 301
-    params = {"learning_rate": 5e-3, 
-              "weight_decay": 5e-4,
+    numIters = 401
+    params = {"learning_rate": 1e-2, 
+              "weight_decay": 1e-3,
               "batch_size": 128,
               "test_batch_size": 128,
               "test_report_freq": 5,

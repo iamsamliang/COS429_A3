@@ -184,7 +184,12 @@ def train(model, input, label, test_data, test_labels, params, numIters):
         
         # implementing momentum
         for layer_index in range(num_layers):
-            v[layer_index] = {layer_param_name: rho*v[layer_index][layer_param_name] + gradients[layer_index][layer_param_name] for layer_param_name in layer["params"].keys()}
+            # for the steps where we change the training batch, resetting momentum 
+            # gets rid of the wrong gradient push.
+            if i % training_batch_update_freq == 0:
+                v[layer_index] = {layer_param_name: gradients[layer_index][layer_param_name] for layer_param_name in layer["params"].keys()}
+            else:
+                v[layer_index] = {layer_param_name: rho*v[layer_index][layer_param_name] + gradients[layer_index][layer_param_name] for layer_param_name in layer["params"].keys()}
      
         model = update_weights(model, v, update_params)
         
