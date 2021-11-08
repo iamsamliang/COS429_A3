@@ -2,11 +2,12 @@ import sys
 sys.path += ['layers']
 import numpy as np
 from loss_crossentropy import loss_crossentropy
+import matplotlib.pyplot as plt
 
 ######################################################
 # Set use_pcode to True to use the provided pyc code
 # for inference, calc_gradient, loss_crossentropy and update_weights
-use_pcode = True
+use_pcode = False
 
 # You can modify the imports of this section to indicate
 # whether to use the provided pyc or your own code for each of the four functions.
@@ -23,7 +24,7 @@ else:
     from update_weights import update_weights
 ######################################################
 
-def train(model, input, label, params, numIters):
+def train(model, input, label, test_data, test_labels, params, numIters, eps=1e-5):
     '''
     This training function is written specifically for classification,
     since it uses crossentropy loss and tests accuracy assuming the final output
@@ -53,6 +54,9 @@ def train(model, input, label, params, numIters):
     # your model. By default the code saves the model in 'model.npz'.
     save_file = params.get("save_file", 'model.npz')
     
+    # test data size
+    test_data_size = test_labels.shape[0]
+    
     # Friction rho for momentum implementation in GD
     rho = params.get("friction_rho", 0.99)
 
@@ -70,6 +74,9 @@ def train(model, input, label, params, numIters):
     for layer_index, layer in enumerate(model["layers"]):
         v[layer_index] = {layer_param_name: np.zeros(layer["params"][layer_param_name].shape) for layer_param_name in layer["params"].keys()}
     
+    # keep track of the training loss and testing loss
+    training_losses = []
+    test_losses = []
             
     for i in range(numIters):
         # TODO: One training iteration
@@ -86,9 +93,24 @@ def train(model, input, label, params, numIters):
         #   (3) Calculate loss and determine accuracy
             # dv_input = derivative of the loss with respect to the input
         loss, dv_input = loss_crossentropy(output, training_labels, {}, True)
+        training_losses.append(loss)
+        if i % (numIters // 10) == 0:
+            test_output, _ = inference(model, test_data)
+            test_loss, _ = loss_crossentropy(test_output, test_labels)
+            test_losses.append(test_loss)
+            test_accuracy = np.count_nonzero(test_output==test_labels) / test_data_size
         # np.count_nonzero(output==training_labels) counts how many predicted_labels match the real labels
-        accuracy = np.count_nonzero(output==training_labels) / batch_size
+        train_accuracy = np.count_nonzero(output==training_labels) / batch_size
         
+        # stop training if we hit 50% accuracy
+        if accuracy >= 0.5:
+            break
+            
+        # decrease learning rate when loss plateaus
+        if i > 1 and (training_loss[-2] - training_loss[-1]) / training_loss[-1] < eps:
+            lr = lr/2
+            update_params['learning_rate'] = lr
+            
         #   (4) Calculate gradients
         gradients = calc_gradient(model, training_batch, activations, dv_input)
         
@@ -97,15 +119,15 @@ def train(model, input, label, params, numIters):
         for layer_index in num_layers:
             v[layer_index] = {layer_param_name: rho*v[layer_index][layer_param_name] + gradients[layer_index][layer_param_name] for layer_param_name in layer["params"].keys()}
             
-        model = update_weights(model, v, params)
+        model = update_weights(model, v, update_params)
         
         # Optionally,
         
         #   (1) Monitor the progress of training
         if (i % (numIters // 10) == 0):
             print(f"---------- Iteration {i} of {numIters} ----------\n")
-            print(f"Training Accuracy: {accuracy}")
-            print(f"Testing Accuracy: TODOTOTODOTODOTO")
+            print(f"Training Accuracy: {train_accuracy}")
+            print(f"Testing Accuracy: {test_accuracy}")
         
         #   (2) Save your learnt model, using ``np.savez(save_file, **model)``
         np.savez(save_file, **model)

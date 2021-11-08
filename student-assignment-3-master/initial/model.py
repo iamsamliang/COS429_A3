@@ -24,7 +24,7 @@ def main():
     
     numIters = 10
     params = {}
-    model, loss = train(model, X_train, y_train, params, numIters)
+    model, loss = train(model, X_train, y_train, X_test, y_test, params, numIters)
     print(loss)
 
 if __name__ == '__main__':
