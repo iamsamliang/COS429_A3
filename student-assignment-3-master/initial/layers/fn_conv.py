@@ -20,7 +20,7 @@ def fn_conv(input, params, hyper_params, backprop, dv_output=None):
             grad['b']: gradient wrt bias, same size as params['b']
     """
     
-    print("Starting Conv Layer")
+#     print("Starting Conv Layer")
 
     in_height, in_width, num_channels, batch_size = input.shape
     _, _, filter_depth, num_filters = params['W'].shape
@@ -84,5 +84,5 @@ def fn_conv(input, params, hyper_params, backprop, dv_output=None):
                 for channel in range(num_channels):
                     dv_input[:,:,channel,im_num] += scipy.signal.convolve(backprop_flipped_filters[:, :, channel, filter_k], dv_output[:, :, filter_k, im_num], mode='full')
 
-    print("Finished with Conv Layer")
+#     print("Finished with Conv Layer")
     return output, dv_input, grad

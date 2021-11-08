@@ -21,11 +21,7 @@ def calc_gradient(model, input, layer_acts, dv_output):
     #       Remember that back-propagation traverses 
     #       the model in the reverse order.
     for layer_index in reversed(range(1, num_layers)):
-        print(layer_index)
         curr_layer = model['layers'][layer_index]
-        print(curr_layer['fwd_fn'])
-        print(curr_layer['params'])
-        print(curr_layer['hyper_params'])
         curr_activations = layer_acts[layer_index - 1]
         _, dv_output, grad = curr_layer['fwd_fn'](curr_activations, curr_layer['params'], curr_layer['hyper_params'], True, 
                                                   dv_output=dv_output)

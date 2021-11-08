@@ -81,9 +81,12 @@ def train(model, input, label, test_data, test_labels, params, numIters):
     # keep track of the training loss and testing loss
     training_losses = []
     test_losses = []
-            
+    
+    # test batch size
+    test_batch_size = 1000
+
     for i in range(numIters):
-        print(f'Starting iteration {i}')
+#         print(f'Starting iteration {i}')
         # TODO: One training iteration
         # Steps:
         #   (1) Select a subset of the input to use as a batch
@@ -100,49 +103,60 @@ def train(model, input, label, test_data, test_labels, params, numIters):
         loss, dv_input = loss_crossentropy(output, training_labels, {}, True)
         training_losses.append(loss)
 #         print("Before test_loss")
-#         if i % (numIters // 10) == 0:
-#             test_output, _ = inference(model, test_data)
-#             test_loss, _ = loss_crossentropy(test_output, test_labels, {}, False)
-#             test_losses.append(test_loss)
-#             test_accuracy = np.count_nonzero(test_output==test_labels) / test_data_size
+        if i % 5 == 0:
+            ran_indices = np.random.choice(test_data.shape[-1], size=test_batch_size, replace=False)
+            test_batch = test_data[..., ran_indices]
+            sub_test_labels = test_labels[ran_indices]
+            test_output, _ = inference(model, test_batch)
+#             print(test_output[:, 1:10])
+            pred_test_labels = np.argmax(test_output, axis=0)
+#             print(f'pred_test_labels shape: {pred_test_labels.shape}')
+#             print(f'test_labels shape: {test_labels.shape}')
+#             print(pred_test_labels[1:10])
+#             print(test_labels[1:10])
+            test_loss, _ = loss_crossentropy(test_output, sub_test_labels, {}, False)
+            test_losses.append(test_loss)
+            test_accuracy = np.count_nonzero(pred_test_labels==sub_test_labels) / test_batch_size
 #         print("After test_loss")
-        # np.count_nonzero(output==training_labels) counts how many predicted_labels match the real labels
-        train_accuracy = np.count_nonzero(output==training_labels) / batch_size
+        pred_train_labels = np.argmax(output, axis=0)
+        # counts how many predicted_labels match the real labels
+        train_accuracy = np.count_nonzero(pred_train_labels==training_labels) / batch_size
         
         # stop training if we hit 50% accuracy
         if train_accuracy >= 0.5:
             break
             
         # decrease learning rate when loss plateaus
-        if i > 1 and (training_loss[-2] - training_loss[-1]) / training_loss[-1] < eps:
+        if i > 1 and (training_losses[-2] - training_losses[-1]) / training_losses[-1] < eps:
             lr = lr/2
             update_params['learning_rate'] = lr
             
-        print("Before calculating gradient")
+#         print("Before calculating gradient")
         #   (4) Calculate gradients
         gradients = calc_gradient(model, training_batch, activations, dv_input)
-        print("After calculating gradient")
+#         print("After calculating gradient")
         
         #   (5) Update the weights of the model
         # implementing momentum
-        print("Before Momentum")
-        for layer_index in num_layers:
+#         print("Before Momentum")
+        for layer_index in range(num_layers):
             v[layer_index] = {layer_param_name: rho*v[layer_index][layer_param_name] + gradients[layer_index][layer_param_name] for layer_param_name in layer["params"].keys()}
-        print("After Momentum")
+#         print("After Momentum")
         
-        print("Before Updating Weights")
+#         print("Before Updating Weights")
         model = update_weights(model, v, update_params)
-        print("After Updating Weights")
+#         print("After Updating Weights")
         
-        print(f'Ending iteration {i}')
+#         print(f'Ending iteration {i}')
         
         # Optionally,
         
         #   (1) Monitor the progress of training
-        if (i % (numIters // 10) == 0):
+        if (i == 0):
             print(f"---------- Iteration {i} of {numIters} ----------\n")
             print(f"Training Accuracy: {train_accuracy}")
-            print(f"Testing Accuracy: {test_accuracy}")
+            if i % 5 == 0:
+                print(f"Testing Accuracy: {test_accuracy}")
         
         #   (2) Save your learnt model, using ``np.savez(save_file, **model)``
         np.savez(save_file, **model)
