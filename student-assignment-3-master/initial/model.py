@@ -17,6 +17,11 @@ import matplotlib.pyplot as plt
 import sys
 import pickle
 
+from loss_crossentropy import loss_crossentropy
+from inference import inference
+from calc_gradient import calc_gradient
+from update_weights import update_weights
+
 def main():
     
     # saved model
@@ -49,24 +54,27 @@ def main():
         pool = init_layers('pool', {'filter_size': 2, 'stride': 2})
         # after flatten: 1960
         flatten = init_layers('flatten', {})
-        linear1 = init_layers('linear', {'num_in': 1960, 'num_out': 140})
-        linear2 = init_layers('linear', {'num_in': 140, 'num_out': 10})
+        linear1 = init_layers('linear', {'num_in': 1960, 'num_out': 10})
         softmax = init_layers('softmax', {})
-
+        
         layers = [conv1, relu, batchnorm1,
-                  conv2, relu, batchnorm2,
+                  conv2, relu,
                   pool, flatten,
-                  linear1, relu,
-                  linear2, softmax]
+                  linear1, softmax]
 
         metrics = None
 
         model = init_model(layers, [X_train.shape[0], X_train.shape[1], X_train.shape[2]], 10, True)
     
-    numIters = 3
-    params = {"learning_rate": 1e-2, 
-              "weight_decay": 1e-3,
+    numIters = 301
+    params = {"learning_rate": 5e-3, 
+              "weight_decay": 5e-4,
               "batch_size": 128,
+              "test_batch_size": 128,
+              "test_report_freq": 5,
+              "train_report_freq": 1,
+              "training_batch_update_freq": 11,
+              "save_model_freq": 20,
               "friction_rho": 0.99,
               "eps": 1e-5,
               "metrics": metrics}
@@ -94,6 +102,16 @@ def main():
     plt.legend()
     plt.savefig("acc/acc_{curr_epoch:.4f}.png".format(curr_epoch=params["metrics"]["curr_epoch"]))
     plt.close()
+    
+    # final testing loss and accuracy
+    print("----------- Final Testing Metrics ----------")
+    test_output, _ = inference(model, X_test)
+    pred_test_labels = np.argmax(test_output, axis=0)
+
+    test_loss, _ = loss_crossentropy(test_output, y_test, {}, False)
+    test_accuracy = np.count_nonzero(pred_test_labels==y_test) / y_test.shape[0]
+    print(f"Testing Loss: {test_loss}")
+    print(f"Testing accuracy: {test_accuracy}")
     
 if __name__ == '__main__':
     main()

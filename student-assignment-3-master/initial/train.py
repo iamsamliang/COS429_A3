@@ -52,7 +52,11 @@ def train(model, input, label, test_data, test_labels, params, numIters):
                 testing_metrics is similar to the training_metrics.
 
                 curr_epoch is a floating number, used for tracking the process.
-                
+            params["test_batch_size"]
+            params["test_report_freq"]
+            params["train_report_freq"]
+            params["training_batch_update_freq"] 
+            params["save_model_freq"]
             Free to add more parameters to this dictionary for your convenience of training.
         numIters: Number of training iterations
             
@@ -93,10 +97,12 @@ def train(model, input, label, test_data, test_labels, params, numIters):
         v.append({layer_param_name: np.zeros(layer["params"][layer_param_name].shape) for layer_param_name in layer["params"].keys()})
     
     
-    test_batch_size = 1000
-    test_report_freq = 10
+    test_batch_size = params.get("test_batch_size", 128)
+    test_report_freq = params.get("test_report_freq", 5)
     
-    train_report_freq = 1
+    train_report_freq = params.get("train_report_freq", 1)
+    training_batch_update_freq = params.get("training_batch_update_freq", 9)
+    save_model_freq = params.get("save_model_freq", 20)
     
     # keep track of the training and testing metrics
     if params["metrics"] is None:
@@ -108,8 +114,6 @@ def train(model, input, label, test_data, test_labels, params, numIters):
         params["metrics"]["testing_metrics"] = {'testing_losses': [],
                                                 'testing_accs': [],
                                                 'testing_recording_epochs': []}
-    
-    save_model_freq = 20
 
     for i in range(numIters):
         # TODO: One training iteration
@@ -119,7 +123,8 @@ def train(model, input, label, test_data, test_labels, params, numIters):
         #   (1) Select a subset of the input to use as a batch
         
         # generate batch_size number of random unique(replace=False) indices from the range of 0 - num_inputs (inclusive)
-        ran_indices = np.random.choice(num_inputs, size=batch_size, replace=False)
+        if i % training_batch_update_freq == 0:
+            ran_indices = np.random.choice(num_inputs, size=batch_size, replace=False)
         
         # overfitting.
         # ran_indices = range(batch_size)
@@ -165,7 +170,7 @@ def train(model, input, label, test_data, test_labels, params, numIters):
             params["metrics"]["testing_metrics"]['testing_recording_epochs'].append(params["metrics"]["curr_epoch"])
                                            
         # decrease learning rate when loss plateaus
-        if i > 1 and (prev_loss - loss)/prev_loss < eps:
+        if i > 1 and np.abs(prev_loss - loss)/prev_loss < eps:
             lr /= 2
             update_params['learning_rate'] = lr
         prev_loss = loss

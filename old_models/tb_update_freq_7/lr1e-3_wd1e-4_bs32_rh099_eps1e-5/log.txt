@@ -1,0 +1,2 @@
+around epoch 0.14 changed the lr decaying to np.abs
+- this might have also fucked up with the previous different hyperparameter runs of the repeated testing batch method.

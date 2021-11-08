@@ -1,0 +1,25 @@
+        conv1 = init_layers('conv', {'filter_size': 3, 'filter_depth': 3, 'num_filters': 8})
+        batchnorm1 = init_layers('batchnorm', {'in_height': 30, 'in_width': 30, 'num_channels': 8})
+        # after conv2, relu, and batchnorm: 28x28x10
+        conv2 = init_layers('conv', {'filter_size': 3, 'filter_depth': 8, 'num_filters': 10})
+        batchnorm2 = init_layers('batchnorm', {'in_height': 28, 'in_width': 28, 'num_channels': 10})
+        relu = init_layers('relu', {})
+        # after pool: 14x14x10
+        pool = init_layers('pool', {'filter_size': 2, 'stride': 2})
+        # after flatten: 1960
+        flatten = init_layers('flatten', {})
+        linear1 = init_layers('linear', {'num_in': 1960, 'num_out': 10})
+        softmax = init_layers('softmax', {})
+        
+        layers = [conv1, relu, batchnorm1,
+                  conv2, relu,
+                  pool, flatten,
+                  linear1, softmax]
+
+
+params = {"learning_rate": 1e-3, 
+              "weight_decay": 1e-4,
+              "batch_size": 128,
+              "friction_rho": 0.99,
+              "eps": 1e-5,
+              "metrics": metrics}
