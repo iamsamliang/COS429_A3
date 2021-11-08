@@ -7,6 +7,7 @@ from fn_relu import fn_relu
 from fn_pool import fn_pool
 from fn_softmax_ import fn_softmax
 from fn_linear_ import fn_linear
+from fn_batchnorm import fn_batchnorm
 
 ######################################################
 # Set use_pcode to True to use the provided pyc code for layer functions
@@ -67,6 +68,13 @@ def init_layers(type, info):
         fn = fn_flatten
     elif type == 'relu':
         fn = fn_relu
+    elif type == 'batchnorm':
+        fn = fn_batchnorm
+        W = weight_init(info['in_height'], info['in_width'], info['num_channels'], 1) * ws
+        b = weight_init(info['in_height'], info['in_width'], info['num_channels'], 1) * bs
+        params['W'] = W
+        params['b'] = b
+        
     else:
         assert False, 'type %s not supported' % type
 
