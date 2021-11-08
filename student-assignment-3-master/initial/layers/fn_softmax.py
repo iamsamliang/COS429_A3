@@ -15,6 +15,7 @@ def fn_softmax(input, params, hyper_params, backprop, dv_output=None):
         grad: Dummy output. This is included to maintain consistency in the return values of layers, but there is no gradient to calculate in the softmax layer since there are no weights to update.
     """
 
+    print("In fn_softmax")
     num_nodes, batch_size = input.shape
     exp_input = np.exp(input)
 
@@ -28,7 +29,9 @@ def fn_softmax(input, params, hyper_params, backprop, dv_output=None):
             'b': np.zeros(0)}
 
     # FORWARD CODE
+    print(f"started fwd code in softmax")
     exp_sums = np.sum(exp_input, axis=0, keepdims=True)
+    print(f"found exp_sums in softmax")
     output = exp_input / exp_sums # num_node * batch_size
 
 
@@ -41,6 +44,7 @@ def fn_softmax(input, params, hyper_params, backprop, dv_output=None):
         # BACKPROP CODE
         jocobian = np.zeros((num_nodes, num_nodes, batch_size)) # num_node x num_node x batch_size
         for b in range(batch_size):
+            print(f"batch {b} in softmax")
             b_output = np.reshape(output[:,b], (-1,1))
             b_dout = np.reshape(dv_output[:, b], (-1, 1))
             jocobian[:, :, b] = - (b_output @ b_output.T) + np.diag(np.ravel(b_output))

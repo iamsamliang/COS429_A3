@@ -26,7 +26,7 @@ def fn_linear(input, params, hyper_params, backprop, dv_output=None):
 
     num_in, batch_size = input.shape
     if num_in != hyper_params['num_in']:
-        print('Incorrect number of inputs provided at linear layer.\n Got %d inputs,  expected %d.' % num_in, hyper_params['num_in'])
+        print(f'Incorrect number of inputs provided at linear layer.\n Got {num_in} inputs,  expected {hyper_params['num_in']}.')
         raise
 
     # Initialize

@@ -24,7 +24,7 @@ else:
     from update_weights import update_weights
 ######################################################
 
-def train(model, input, label, test_data, test_labels, params, numIters, eps=1e-5):
+def train(model, input, label, test_data, test_labels, params, numIters):
     '''
     This training function is written specifically for classification,
     since it uses crossentropy loss and tests accuracy assuming the final output
@@ -39,6 +39,7 @@ def train(model, input, label, test_data, test_labels, params, numIters, eps=1e-
             params["batch_size"]
             params["save_file"]
             params["friction_rho"] (ADDED FOR MOMENTUM)
+            params["eps"] (for decreasing lr when loss plateaus)
             Free to add more parameters to this dictionary for your convenience of training.
         numIters: Number of training iterations
     '''
@@ -59,6 +60,9 @@ def train(model, input, label, test_data, test_labels, params, numIters, eps=1e-
     
     # Friction rho for momentum implementation in GD
     rho = params.get("friction_rho", 0.99)
+    
+    # eps
+    eps = params.get("eps", 1e-5)
 
     # update_params will be passed to your update_weights function.
     # This allows flexibility in case you want to implement extra features like momentum.
@@ -71,14 +75,15 @@ def train(model, input, label, test_data, test_labels, params, numIters, eps=1e-
     
     # velocity initialization for momentum
     v = []
-    for layer_index, layer in enumerate(model["layers"]):
-        v[layer_index] = {layer_param_name: np.zeros(layer["params"][layer_param_name].shape) for layer_param_name in layer["params"].keys()}
+    for layer in model["layers"]:
+        v.append({layer_param_name: np.zeros(layer["params"][layer_param_name].shape) for layer_param_name in layer["params"].keys()})
     
     # keep track of the training loss and testing loss
     training_losses = []
     test_losses = []
             
     for i in range(numIters):
+        print(f'Starting iteration {i}')
         # TODO: One training iteration
         # Steps:
         #   (1) Select a subset of the input to use as a batch
@@ -94,16 +99,18 @@ def train(model, input, label, test_data, test_labels, params, numIters, eps=1e-
             # dv_input = derivative of the loss with respect to the input
         loss, dv_input = loss_crossentropy(output, training_labels, {}, True)
         training_losses.append(loss)
-        if i % (numIters // 10) == 0:
-            test_output, _ = inference(model, test_data)
-            test_loss, _ = loss_crossentropy(test_output, test_labels)
-            test_losses.append(test_loss)
-            test_accuracy = np.count_nonzero(test_output==test_labels) / test_data_size
+#         print("Before test_loss")
+#         if i % (numIters // 10) == 0:
+#             test_output, _ = inference(model, test_data)
+#             test_loss, _ = loss_crossentropy(test_output, test_labels, {}, False)
+#             test_losses.append(test_loss)
+#             test_accuracy = np.count_nonzero(test_output==test_labels) / test_data_size
+#         print("After test_loss")
         # np.count_nonzero(output==training_labels) counts how many predicted_labels match the real labels
         train_accuracy = np.count_nonzero(output==training_labels) / batch_size
         
         # stop training if we hit 50% accuracy
-        if accuracy >= 0.5:
+        if train_accuracy >= 0.5:
             break
             
         # decrease learning rate when loss plateaus
@@ -111,15 +118,23 @@ def train(model, input, label, test_data, test_labels, params, numIters, eps=1e-
             lr = lr/2
             update_params['learning_rate'] = lr
             
+        print("Before calculating gradient")
         #   (4) Calculate gradients
         gradients = calc_gradient(model, training_batch, activations, dv_input)
+        print("After calculating gradient")
         
         #   (5) Update the weights of the model
         # implementing momentum
+        print("Before Momentum")
         for layer_index in num_layers:
             v[layer_index] = {layer_param_name: rho*v[layer_index][layer_param_name] + gradients[layer_index][layer_param_name] for layer_param_name in layer["params"].keys()}
-            
+        print("After Momentum")
+        
+        print("Before Updating Weights")
         model = update_weights(model, v, update_params)
+        print("After Updating Weights")
+        
+        print(f'Ending iteration {i}')
         
         # Optionally,
         
