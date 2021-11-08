@@ -3,6 +3,7 @@ sys.path += ['layers']
 import numpy as np
 from loss_crossentropy import loss_crossentropy
 import matplotlib.pyplot as plt
+import pickle
 
 ######################################################
 # Set use_pcode to True to use the provided pyc code
@@ -40,8 +41,21 @@ def train(model, input, label, test_data, test_labels, params, numIters):
             params["save_file"]
             params["friction_rho"] (ADDED FOR MOMENTUM)
             params["eps"] (for decreasing lr when loss plateaus)
+            params["save_metrics_file"]
+            params["metrics"]: a dictionary of three keys
+                training_metrics is a dictionary, which includes three keys:
+                    - 'training_recording_epochs': 1D array, the (floating point) epoch values when the losses
+                    and accuracies with the same index in the following two arrays were calculated.
+                    - 'training_losses': 1D array of training losses, calculated over the training minibatch.
+                    - 'training_accs': 1D array of testing losses, calculated over the testing minibatch.
+
+                testing_metrics is similar to the training_metrics.
+
+                curr_epoch is a floating number, used for tracking the process.
+                
             Free to add more parameters to this dictionary for your convenience of training.
         numIters: Number of training iterations
+            
     '''
     # Initialize training parameters
     # Learning rate
@@ -54,6 +68,7 @@ def train(model, input, label, test_data, test_labels, params, numIters):
     # training. It is up to you where you save and how often you choose to back up
     # your model. By default the code saves the model in 'model.npz'.
     save_file = params.get("save_file", 'model.npz')
+    save_metrics_file = params.get("save_metrics_file", "metrics.pickle")
     
     # test data size
     test_data_size = test_labels.shape[0]
@@ -70,7 +85,6 @@ def train(model, input, label, test_data, test_labels, params, numIters):
                      "weight_decay": wd }
 
     num_inputs = input.shape[-1]
-    loss = np.zeros((numIters,)) # TODO TODO TODO seems problematic? Need to construct loss/accuracy arrays for plotting!
     num_layers = len(model["layers"])
     
     # velocity initialization for momentum
@@ -78,87 +92,120 @@ def train(model, input, label, test_data, test_labels, params, numIters):
     for layer in model["layers"]:
         v.append({layer_param_name: np.zeros(layer["params"][layer_param_name].shape) for layer_param_name in layer["params"].keys()})
     
-    # keep track of the training loss and testing loss
-    training_losses = []
-    test_losses = []
     
-    # test batch size
     test_batch_size = 1000
+    test_report_freq = 10
+    
+    train_report_freq = 1
+    
+    # keep track of the training and testing metrics
+    if params["metrics"] is None:
+        params["metrics"] = {}
+        params["metrics"]["curr_epoch"] = 0
+        params["metrics"]["training_metrics"] = {'training_losses': [],
+                                                 'training_accs': [],
+                                                 'training_recording_epochs': []}
+        params["metrics"]["testing_metrics"] = {'testing_losses': [],
+                                                'testing_accs': [],
+                                                'testing_recording_epochs': []}
+    
+    save_model_freq = 20
 
     for i in range(numIters):
-#         print(f'Starting iteration {i}')
         # TODO: One training iteration
         # Steps:
+        
+        ##########################################################
         #   (1) Select a subset of the input to use as a batch
-            # generate batch_size number of random unique(replace=False) indices from the range of 0 - num_inputs (inclusive)
+        
+        # generate batch_size number of random unique(replace=False) indices from the range of 0 - num_inputs (inclusive)
         ran_indices = np.random.choice(num_inputs, size=batch_size, replace=False)
+        
+        # overfitting.
+        # ran_indices = range(batch_size)
+        
         training_batch = input[..., ran_indices]
         training_labels = label[ran_indices]
         
+        ##########################################################
         #   (2) Run inference on the batch
         output, activations = inference(model, training_batch)
         
+        ##########################################################
         #   (3) Calculate loss and determine accuracy
-            # dv_input = derivative of the loss with respect to the input
+        
+        # for training
         loss, dv_input = loss_crossentropy(output, training_labels, {}, True)
-        training_losses.append(loss)
-#         print("Before test_loss")
-        if i % 5 == 0:
-            ran_indices = np.random.choice(test_data.shape[-1], size=test_batch_size, replace=False)
-            test_batch = test_data[..., ran_indices]
-            sub_test_labels = test_labels[ran_indices]
-            test_output, _ = inference(model, test_batch)
-#             print(test_output[:, 1:10])
-            pred_test_labels = np.argmax(test_output, axis=0)
-#             print(f'pred_test_labels shape: {pred_test_labels.shape}')
-#             print(f'test_labels shape: {test_labels.shape}')
-#             print(pred_test_labels[1:10])
-#             print(test_labels[1:10])
-            test_loss, _ = loss_crossentropy(test_output, sub_test_labels, {}, False)
-            test_losses.append(test_loss)
-            test_accuracy = np.count_nonzero(pred_test_labels==sub_test_labels) / test_batch_size
-#         print("After test_loss")
+        
         pred_train_labels = np.argmax(output, axis=0)
+        
         # counts how many predicted_labels match the real labels
         train_accuracy = np.count_nonzero(pred_train_labels==training_labels) / batch_size
         
-        # stop training if we hit 50% accuracy
-        if train_accuracy >= 0.5:
-            break
+        if i % train_report_freq == 0:
+            params["metrics"]["training_metrics"]['training_losses'].append(loss)
+            params["metrics"]["training_metrics"]['training_accs'].append(train_accuracy)
+            params["metrics"]["training_metrics"]['training_recording_epochs'].append(params["metrics"]["curr_epoch"])
+         
+        
+        # for testing
+        if i % test_report_freq == 0:
             
+            test_batch_indices = np.random.choice(test_data.shape[-1], size=test_batch_size, replace=False)
+            test_batch = test_data[...,test_batch_indices]
+            test_batch_labels = test_labels[test_batch_indices]
+            
+            test_output, _ = inference(model, test_batch)
+            pred_test_labels = np.argmax(test_output, axis=0)
+            
+            test_loss, _ = loss_crossentropy(test_output, test_batch_labels, {}, False)
+            test_accuracy = np.count_nonzero(pred_test_labels==test_batch_labels) / test_batch_size
+            params["metrics"]["testing_metrics"]['testing_losses'].append(test_loss)
+            params["metrics"]["testing_metrics"]['testing_accs'].append(test_accuracy)
+            params["metrics"]["testing_metrics"]['testing_recording_epochs'].append(params["metrics"]["curr_epoch"])
+                                           
         # decrease learning rate when loss plateaus
-        if i > 1 and (training_losses[-2] - training_losses[-1]) / training_losses[-1] < eps:
-            lr = lr/2
+        if i > 1 and (prev_loss - loss)/prev_loss < eps:
+            lr /= 2
             update_params['learning_rate'] = lr
-            
-#         print("Before calculating gradient")
+        prev_loss = loss
+        
+        ##########################################################
         #   (4) Calculate gradients
         gradients = calc_gradient(model, training_batch, activations, dv_input)
-#         print("After calculating gradient")
-        
+     
+        ##########################################################
         #   (5) Update the weights of the model
+        
         # implementing momentum
-#         print("Before Momentum")
         for layer_index in range(num_layers):
             v[layer_index] = {layer_param_name: rho*v[layer_index][layer_param_name] + gradients[layer_index][layer_param_name] for layer_param_name in layer["params"].keys()}
-#         print("After Momentum")
-        
-#         print("Before Updating Weights")
+     
         model = update_weights(model, v, update_params)
-#         print("After Updating Weights")
         
-#         print(f'Ending iteration {i}')
+        ##########################################################
+        #   (6) Monitor the progress of training
+        print("---------- Iteration {i:d} of {iters:d} --- Epoch {curr_epoch:.4f} ----------\n".format(i=i, iters=numIters - 1, curr_epoch=params["metrics"]["curr_epoch"]))
+        print(f"Training Accuracy: {train_accuracy}")
+        print(f"Training Loss: {loss}")
         
-        # Optionally,
+        if i % test_report_freq == 0:
+            print(f"Testing Accuracy: {test_accuracy}")
+            print(f"Testing Loss: {test_loss}")
         
-        #   (1) Monitor the progress of training
-        if (i == 0):
-            print(f"---------- Iteration {i} of {numIters} ----------\n")
-            print(f"Training Accuracy: {train_accuracy}")
-            if i % 5 == 0:
-                print(f"Testing Accuracy: {test_accuracy}")
+        print()
+
+        ##########################################################
+        #   (7) Keep track of the current epoch for visualization purposes
+        #   noting that final iteration will be create the current epoch for the next
+        #   run of the model.
+        params["metrics"]["curr_epoch"] += batch_size/num_inputs
         
-        #   (2) Save your learnt model, using ``np.savez(save_file, **model)``
-        np.savez(save_file, **model)
+        ##########################################################
+        #   (8) Save your learnt model, using ``np.savez(save_file, **model)``
+        if i != 0 and i % save_model_freq == 0:
+            np.savez(save_file, **model)
+            with open(save_metrics_file, 'wb') as file:
+                pickle.dump(params["metrics"], file, protocol=pickle.HIGHEST_PROTOCOL)
         
-    return model, loss
+    return model
