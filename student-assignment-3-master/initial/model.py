@@ -43,7 +43,6 @@ def main():
             metrics = pickle.load(file)
         
     else:
-        # after conv1, relu, and batchnorm: 30x30x8
         conv1 = init_layers('conv', {'filter_size': 3, 'filter_depth': 3, 'num_filters': 8})
         batchnorm1 = init_layers('batchnorm', {'in_height': 30, 'in_width': 30, 'num_channels': 8})
         # after conv2, relu, and batchnorm: 28x28x10
@@ -66,9 +65,9 @@ def main():
 
         model = init_model(layers, [X_train.shape[0], X_train.shape[1], X_train.shape[2]], 10, True)
     
-    numIters = 401
-    params = {"learning_rate": 1e-2, 
-              "weight_decay": 1e-3,
+    numIters = 1201
+    params = {"learning_rate": 5e-3, 
+              "weight_decay": 5e-4,
               "batch_size": 128,
               "test_batch_size": 128,
               "test_report_freq": 5,

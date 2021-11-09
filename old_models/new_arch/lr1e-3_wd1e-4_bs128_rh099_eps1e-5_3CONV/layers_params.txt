@@ -1,0 +1,32 @@
+	# after conv1, relu, and batchnorm: 30x30x8
+        conv1 = init_layers('conv', {'filter_size': 3, 'filter_depth': 3, 'num_filters': 8})
+        batchnorm1 = init_layers('batchnorm', {'in_height': 30, 'in_width': 30, 'num_channels': 8})
+        # after conv2, relu, and batchnorm: 28x28x16
+        conv2 = init_layers('conv', {'filter_size': 3, 'filter_depth': 8, 'num_filters': 16})
+        batchnorm2 = init_layers('batchnorm', {'in_height': 28, 'in_width': 28, 'num_channels': 16})
+        relu = init_layers('relu', {})
+        # after pool: 14x14x16
+        pool = init_layers('pool', {'filter_size': 2, 'stride': 4]})
+        # after flatten: 3136
+        flatten = init_layers('flatten', {})
+        linear1 = init_layers('linear', {'num_in': 3136, 'num_out': 1568})
+        linear2 = init_layers('linear', {'num_in': 1568, 'num_out': 10})
+        softmax = init_layers('softmax', {})
+        
+        layers = [conv1, batchnorm1, relu,
+                  conv2, batchnorm2, relu,
+                  pool, flatten,
+                  linear1, linear2, softmax]
+    
+    numIters = 801
+    params = {"learning_rate": 1e-3, 
+              "weight_decay": 1e-4,
+              "batch_size": 64,
+              "test_batch_size": 128,
+              "test_report_freq": 5,
+              "train_report_freq": 1,
+              "training_batch_update_freq": 4,
+              "save_model_freq": 20,
+              "friction_rho": 0.99,
+              "eps": 1e-5,
+              "metrics": metrics}

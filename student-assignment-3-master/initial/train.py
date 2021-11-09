@@ -169,11 +169,16 @@ def train(model, input, label, test_data, test_labels, params, numIters):
             params["metrics"]["testing_metrics"]['testing_accs'].append(test_accuracy)
             params["metrics"]["testing_metrics"]['testing_recording_epochs'].append(params["metrics"]["curr_epoch"])
                                            
-        # decrease learning rate when loss plateaus
-        if i > 1 and np.abs(prev_loss - loss)/prev_loss < eps:
-            lr /= 2
-            update_params['learning_rate'] = lr
-        prev_loss = loss
+        # decrease learning rate as training progresses
+#         if i == 100:
+#             lr /= 10
+#             update_params['learning_rate'] = lr
+#         elif i == 200:
+#             lr /= 5
+#             update_params['learning_rate'] = lr
+#         if i == 300:
+#             lr /= 2
+#             update_params['learning_rate'] = lr
         
         ##########################################################
         #   (4) Calculate gradients

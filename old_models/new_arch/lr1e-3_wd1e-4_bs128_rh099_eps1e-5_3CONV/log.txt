@@ -1,0 +1,2 @@
+np.abs for lr scheduling is used
+momentum is zeroed whenever the testing minibatch is changed.

@@ -1,4 +1,4 @@
-epoch:
-loss: 
-acc: 
+epoch: 0.315
+loss: 2.30664279364611
+acc: 0.1
 
